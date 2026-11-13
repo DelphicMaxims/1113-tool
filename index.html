@@ -1,877 +1,233 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>2026 全球核彈數量戰略態勢圖 // IMF TERMINAL</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
-  <style>
-    :root {
-      --bg-void: #07090d;
-      --bg-panel: rgba(12, 16, 23, 0.86);
-      --border-hud: rgba(217, 155, 67, 0.28);
-      --accent-amber: #f59e0b;
-      --accent-amber-glow: rgba(245, 158, 11, 0.35);
-      --accent-cyan: #38bdf8;
-      --accent-red: #ef4444;
-      --text-primary: #f3ede2;
-      --text-muted: #9ca3af;
-      --font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-mono: 'JetBrains Mono', 'Courier New', monospace;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: var(--bg-void);
-      color: var(--text-primary);
-      font-family: var(--font-sans);
-      user-select: none;
-    }
-
-    /* 背景科技網格與掃描線 */
-    .hud-backdrop {
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(circle at 50% 45%, rgba(30, 24, 18, 0.55) 0%, rgba(7, 9, 13, 0.96) 75%),
-        linear-gradient(rgba(245, 158, 11, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(245, 158, 11, 0.03) 1px, transparent 1px);
-      background-size: 100% 100%, 40px 40px, 40px 40px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .scanlines {
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        to bottom,
-        rgba(255, 255, 255, 0) 0px,
-        rgba(255, 255, 255, 0) 2px,
-        rgba(0, 0, 0, 0.16) 3px,
-        rgba(0, 0, 0, 0.16) 4px
-      );
-      pointer-events: none;
-      z-index: 50;
-      opacity: 0.45;
-    }
-
-    /* 頂部 IMF 戰情列 */
-    header.hud-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 60px;
-      padding: 0 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: linear-gradient(180deg, rgba(10, 13, 19, 0.95) 0%, rgba(10, 13, 19, 0.72) 100%);
-      border-bottom: 1px solid var(--border-hud);
-      backdrop-filter: blur(8px);
-      z-index: 20;
-    }
-
-    .brand-block {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .imf-badge {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.16em;
-      color: #07090d;
-      background: var(--accent-amber);
-      padding: 4px 8px;
-      border-radius: 2px;
-      box-shadow: 0 0 12px var(--accent-amber-glow);
-    }
-
-    .title-group h1 {
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      color: var(--text-primary);
-    }
-
-    .title-group .subtitle {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 0.15em;
-      color: var(--accent-amber);
-      opacity: 0.85;
-      margin-top: 2px;
-    }
-
-    .telemetry-bar {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      font-family: var(--font-mono);
-      font-size: 12px;
-    }
-
-    .telemetry-item {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-    }
-
-    .telemetry-label {
-      font-size: 9px;
-      letter-spacing: 0.12em;
-      color: var(--text-muted);
-    }
-
-    .telemetry-value {
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-top: 1px;
-    }
-
-    .telemetry-value.highlight {
-      color: var(--accent-amber);
-    }
-
-    .status-pill {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 5px 10px;
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      background: rgba(239, 68, 68, 0.08);
-      border-radius: 2px;
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      color: #fca5a5;
-    }
-
-    .pulse-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--accent-red);
-      box-shadow: 0 0 8px var(--accent-red);
-      animation: pulse 1.6s infinite ease-in-out;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.35; transform: scale(0.8); }
-    }
-
-    /* 地圖容器 */
-    #map-container {
-      position: fixed;
-      inset: 60px 0 0 0;
-      z-index: 5;
-      cursor: grab;
-    }
-
-    #map-container:active {
-      cursor: grabbing;
-    }
-
-    svg#world-map {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    .graticule {
-      fill: none;
-      stroke: rgba(217, 155, 67, 0.09);
-      stroke-width: 0.6px;
-      stroke-dasharray: 2 3;
-    }
-
-    .sphere-outline {
-      fill: rgba(8, 11, 16, 0.55);
-      stroke: rgba(245, 158, 11, 0.25);
-      stroke-width: 1px;
-    }
-
-    .country {
-      stroke: #4f3a27;
-      stroke-width: 0.65px;
-      transition: fill 0.18s ease, stroke 0.15s ease, filter 0.15s ease;
-    }
-
-    .country:hover,
-    .country.active {
-      stroke: #fbbf24;
-      stroke-width: 1.5px;
-      filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.55));
-    }
-
-    /* 四角戰術框裝飾 */
-    .hud-corner {
-      position: fixed;
-      width: 22px;
-      height: 22px;
-      border-color: rgba(245, 158, 11, 0.55);
-      border-style: solid;
-      pointer-events: none;
-      z-index: 15;
-    }
-    .corner-tl { top: 74px; left: 16px; border-width: 2px 0 0 2px; }
-    .corner-tr { top: 74px; right: 16px; border-width: 2px 2px 0 0; }
-    .corner-bl { bottom: 16px; left: 16px; border-width: 0 0 2px 2px; }
-    .corner-br { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; }
-
-    /* 左下角控制與資料說明 */
-    .hud-controls {
-      position: fixed;
-      bottom: 26px;
-      left: 26px;
-      z-index: 20;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .zoom-group {
-      display: flex;
-      gap: 6px;
-    }
-
-    .hud-btn {
-      font-family: var(--font-mono);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-primary);
-      background: var(--bg-panel);
-      border: 1px solid var(--border-hud);
-      padding: 7px 12px;
-      cursor: pointer;
-      backdrop-filter: blur(8px);
-      transition: all 0.15s ease;
-    }
-
-    .hud-btn:hover {
-      border-color: var(--accent-amber);
-      color: var(--accent-amber);
-      box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
-    }
-
-    .meta-note {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      line-height: 1.5;
-      color: var(--text-muted);
-      background: var(--bg-panel);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-left: 2px solid var(--accent-amber);
-      padding: 8px 12px;
-      backdrop-filter: blur(8px);
-      max-width: 300px;
-    }
-
-    /* 右下角圖例 */
-    .legend-panel {
-      position: fixed;
-      bottom: 26px;
-      right: 26px;
-      z-index: 20;
-      width: 248px;
-      background: var(--bg-panel);
-      border: 1px solid var(--border-hud);
-      backdrop-filter: blur(10px);
-      padding: 14px 16px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
-    }
-
-    .legend-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid rgba(245, 158, 11, 0.2);
-      padding-bottom: 8px;
-      margin-bottom: 10px;
-    }
-
-    .legend-title {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      color: var(--accent-amber);
-    }
-
-    .legend-unit {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--text-muted);
-    }
-
-    .legend-list {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 12px;
-      padding: 3px 5px;
-      border-radius: 2px;
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
-
-    .legend-item:hover {
-      background: rgba(245, 158, 11, 0.1);
-    }
-
-    .legend-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .legend-swatch {
-      width: 18px;
-      height: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      flex-shrink: 0;
-    }
-
-    .legend-range {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-primary);
-    }
-
-    .legend-desc {
-      font-size: 10px;
-      color: var(--text-muted);
-    }
-
-    /* 滑鼠懸停資訊框 Tooltip */
-    .hud-tooltip {
-      position: fixed;
-      pointer-events: none;
-      z-index: 40;
-      min-width: 215px;
-      background: rgba(10, 14, 21, 0.94);
-      border: 1px solid var(--accent-amber);
-      box-shadow: 0 0 22px rgba(0, 0, 0, 0.8), 0 0 12px rgba(245, 158, 11, 0.22);
-      padding: 11px 14px;
-      backdrop-filter: blur(10px);
-      opacity: 0;
-      transform: translateY(4px);
-      transition: opacity 0.12s ease, transform 0.12s ease;
-    }
-
-    .hud-tooltip.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .tooltip-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      border-bottom: 1px solid rgba(245, 158, 11, 0.22);
-      padding-bottom: 6px;
-      margin-bottom: 8px;
-    }
-
-    .tooltip-country {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text-primary);
-      letter-spacing: 0.04em;
-    }
-
-    .tooltip-tag {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      padding: 2px 5px;
-      border-radius: 2px;
-      letter-spacing: 0.08em;
-    }
-
-    .tag-armed {
-      background: rgba(239, 68, 68, 0.18);
-      color: #fca5a5;
-      border: 1px solid rgba(239, 68, 68, 0.45);
-    }
-
-    .tag-none {
-      background: rgba(156, 163, 175, 0.12);
-      color: #9ca3af;
-      border: 1px solid rgba(156, 163, 175, 0.25);
-    }
-
-    .tooltip-metric {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .tooltip-label {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    .tooltip-value {
-      font-family: var(--font-mono);
-      font-size: 17px;
-      font-weight: 700;
-      color: var(--accent-amber);
-    }
-
-    .tooltip-value.zero {
-      color: #d6c3a5;
-      font-size: 14px;
-    }
-
-    /* 載入畫面 */
-    #loading-overlay {
-      position: fixed;
-      inset: 0;
-      background: var(--bg-void);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      z-index: 100;
-      font-family: var(--font-mono);
-      transition: opacity 0.4s ease;
-    }
-
-    .loader-bar {
-      width: 240px;
-      height: 3px;
-      background: rgba(245, 158, 11, 0.15);
-      overflow: hidden;
-      position: relative;
-    }
-
-    .loader-bar::after {
-      content: "";
-      position: absolute;
-      left: -40%;
-      width: 40%;
-      height: 100%;
-      background: var(--accent-amber);
-      box-shadow: 0 0 10px var(--accent-amber);
-      animation: scan 1.1s infinite linear;
-    }
-
-    @keyframes scan {
-      0% { left: -40%; }
-      100% { left: 100%; }
-    }
-
-    .loader-text {
-      font-size: 12px;
-      letter-spacing: 0.18em;
-      color: var(--accent-amber);
-    }
-
-    @media (max-width: 768px) {
-      .telemetry-bar { display: none; }
-      .meta-note { display: none; }
-      .legend-panel {
-        width: 205px;
-        bottom: 16px;
-        right: 16px;
-        padding: 10px 12px;
-      }
-      .hud-controls {
-        bottom: 16px;
-        left: 16px;
-      }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>每日飲食記錄</title>
+<style>
+  :root{
+    --green:#06c755; --green-d:#05a647; --ink:#1f2937; --mute:#6b7280;
+    --line:#e5e7eb; --bg:#f4f6f8; --card:#fff; --warn:#b45309; --err:#b91c1c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+    padding:16px 16px calc(32px + env(safe-area-inset-bottom));}
+  .wrap{max-width:560px;margin:0 auto}
+  h1{font-size:22px;margin:4px 0 2px}
+  .sub{color:var(--mute);font-size:14px;margin:0 0 14px}
+  .banner{background:#fffbeb;border:1px solid #fde68a;color:var(--warn);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;display:none}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+  .card h2{font-size:16px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .card h2 .ico{font-size:20px}
+  label{display:block;font-size:13px;color:var(--mute);margin:8px 0 4px}
+  input[type=text],input[type=date],input[type=time],input[type=number]{
+    width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);
+    -webkit-appearance:none;appearance:none;min-height:44px}
+  input:focus{outline:2px solid var(--green);outline-offset:0;border-color:var(--green)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;color:var(--ink)}
+  .chip:active{background:#ecfdf3;border-color:var(--green)}
+  .total{display:flex;justify-content:space-between;align-items:center;font-size:15px;margin:2px 4px 12px}
+  .total b{font-size:20px;color:var(--green-d)}
+  button.submit{width:100%;border:0;background:var(--green);color:#fff;font-size:17px;font-weight:700;border-radius:12px;padding:14px;min-height:50px;cursor:pointer}
+  button.submit:disabled{background:#9ca3af}
+  button.submit:active:not(:disabled){background:var(--green-d)}
+  .msg{margin-top:12px;padding:12px;border-radius:10px;font-size:14px;display:none;white-space:pre-line}
+  .msg.ok{display:block;background:#ecfdf3;border:1px solid #a7f3d0;color:#065f46}
+  .msg.err{display:block;background:#fef2f2;border:1px solid #fecaca;color:var(--err)}
+  .foot{color:var(--mute);font-size:12px;text-align:center;margin-top:16px}
+  .who{font-size:13px;color:var(--mute);margin:0 0 10px}
+</style>
 </head>
 <body>
-  <div class="hud-backdrop"></div>
-  <div class="scanlines"></div>
+<div class="wrap">
+  <h1>🍽️ 每日飲食記錄</h1>
+  <p class="sub">記下今天吃了什麼、幾點吃、花多少錢。</p>
+  <div class="banner" id="banner"></div>
+  <p class="who" id="who"></p>
 
-  <div id="loading-overlay">
-    <div class="loader-text">INITIALIZING SATELLITE UPLINK // 2026</div>
-    <div class="loader-bar"></div>
-  </div>
-
-  <!-- 頂部戰情列 -->
-  <header class="hud-header">
-    <div class="brand-block">
-      <div class="imf-badge">IMF // INTEL</div>
-      <div class="title-group">
-        <h1>2026 全球核彈數量戰略態勢圖</h1>
-        <div class="subtitle">GLOBAL NUCLEAR ARSENAL SURVEILLANCE // YEAR 2026</div>
+  <form id="form" autocomplete="off" novalidate>
+    <div class="card">
+      <label for="date" style="margin-top:0">日期</label>
+      <input type="date" id="date" required>
+      <div id="nameBox">
+        <label for="name">你的名字（選填）</label>
+        <input type="text" id="name" maxlength="30" placeholder="例如：Michael">
       </div>
     </div>
 
-    <div class="telemetry-bar">
-      <div class="telemetry-item">
-        <span class="telemetry-label">NUCLEAR STATES</span>
-        <span class="telemetry-value">9 國</span>
-      </div>
-      <div class="telemetry-item">
-        <span class="telemetry-label">EST. GLOBAL TOTAL</span>
-        <span class="telemetry-value highlight" id="global-total">-- 枚</span>
-      </div>
-      <div class="telemetry-item">
-        <span class="telemetry-label">UTC TIME</span>
-        <span class="telemetry-value" id="utc-clock">--:--:--</span>
-      </div>
-      <div class="status-pill">
-        <span class="pulse-dot"></span>
-        <span>CLASSIFIED</span>
+    <div class="card" data-meal="breakfast">
+      <h2><span class="ico">🥐</span>早餐</h2>
+      <label>吃什麼</label>
+      <input type="text" name="what" maxlength="60" placeholder="例如：蛋餅、豆漿">
+      <div class="row">
+        <div><label>幾點吃</label><input type="time" name="time"></div>
+        <div><label>花多少（元）</label><input type="number" name="cost" inputmode="numeric" min="0" max="100000" step="1" placeholder="0"></div>
       </div>
     </div>
-  </header>
 
-  <!-- 四角 HUD 框線 -->
-  <div class="hud-corner corner-tl"></div>
-  <div class="hud-corner corner-tr"></div>
-  <div class="hud-corner corner-bl"></div>
-  <div class="hud-corner corner-br"></div>
-
-  <!-- 地圖主畫布 -->
-  <main id="map-container">
-    <svg id="world-map"></svg>
-  </main>
-
-  <!-- 左下角縮放與說明 -->
-  <div class="hud-controls">
-    <div class="zoom-group">
-      <button class="hud-btn" id="btn-zoom-in" title="放大">＋</button>
-      <button class="hud-btn" id="btn-zoom-out" title="縮小">－</button>
-      <button class="hud-btn" id="btn-reset">重置視角</button>
+    <div class="card" data-meal="lunch">
+      <h2><span class="ico">🍱</span>中餐</h2>
+      <label>吃什麼</label>
+      <input type="text" name="what" maxlength="60" placeholder="例如：雞腿便當">
+      <div class="row">
+        <div><label>幾點吃</label><input type="time" name="time"></div>
+        <div><label>花多少（元）</label><input type="number" name="cost" inputmode="numeric" min="0" max="100000" step="1" placeholder="0"></div>
+      </div>
     </div>
-    <div class="meta-note">
-      DATA REF: 2026 全球核武庫存估算（FAS / SIPRI 趨勢推估，含部署與儲備核彈頭）。支援滾輪縮放與拖曳檢視。
-    </div>
-  </div>
 
-  <!-- 右下角圖例 -->
-  <aside class="legend-panel" aria-label="核彈數量圖例">
-    <div class="legend-header">
-      <span class="legend-title">核彈數量圖例</span>
-      <span class="legend-unit">單位：枚</span>
+    <div class="card" data-meal="dinner">
+      <h2><span class="ico">🍜</span>晚餐</h2>
+      <label>吃什麼</label>
+      <input type="text" name="what" maxlength="60" placeholder="例如：牛肉麵">
+      <div class="row">
+        <div><label>幾點吃</label><input type="time" name="time"></div>
+        <div><label>花多少（元）</label><input type="number" name="cost" inputmode="numeric" min="0" max="100000" step="1" placeholder="0"></div>
+      </div>
     </div>
-    <div class="legend-list" id="legend-list"></div>
-  </aside>
 
-  <!-- 滑鼠懸停提示框 -->
-  <div class="hud-tooltip" id="tooltip">
-    <div class="tooltip-top">
-      <span class="tooltip-country" id="tt-country">--</span>
-      <span class="tooltip-tag" id="tt-tag">--</span>
+    <div class="card">
+      <h2><span class="ico">🥤</span>喝什麼飲料</h2>
+      <input type="text" id="drink" maxlength="60" placeholder="例如：無糖綠茶、拿鐵">
+      <div class="chips" id="chips">
+        <span class="chip">水</span><span class="chip">無糖茶</span><span class="chip">咖啡</span>
+        <span class="chip">手搖飲</span><span class="chip">牛奶</span><span class="chip">沒喝</span>
+      </div>
     </div>
-    <div class="tooltip-metric">
-      <span class="tooltip-label">核彈數量</span>
-      <span class="tooltip-value" id="tt-count">-- 枚</span>
-    </div>
-  </div>
 
-  <script>
-    // 1. 2026 年各國核彈數量推估（依據 FAS / SIPRI 公開評估推估，Key 為 ISO 3166-1 數字代碼）
-    const NUCLEAR_DATA_2026 = {
-      "643": 5459, // 俄羅斯
-      "840": 5177, // 美國
-      "156": 600,  // 中國
-      "250": 290,  // 法國
-      "826": 225,  // 英國
-      "356": 180,  // 印度
-      "586": 170,  // 巴基斯坦
-      "376": 90,   // 以色列
-      "408": 50    // 北韓
+    <div class="total"><span>今天花費合計</span><b id="total">NT$ 0</b></div>
+    <button class="submit" id="btn" type="submit">送出記錄</button>
+    <div class="msg" id="msg" role="status"></div>
+  </form>
+
+  <p class="foot">資料會寫入「每日飲食狀況」試算表</p>
+</div>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js" async></script>
+<script>
+/* ============ 設定區：只需要改這兩行 ============ */
+// 1) Google Apps Script 部署後的「網頁應用程式網址」（結尾是 /exec）
+const SHEET_API_URL = "";
+// 2) LINE LIFF ID（格式像 1234567890-AbCdEfGh）。還沒做 LIFF 就留空，頁面照常可用
+const LIFF_ID = "";
+/* ================================================ */
+
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+let lineName = "";
+
+// 預設今天（用本機時區）
+(function setToday(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,"0");
+  $("#date").value = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+})();
+
+// 設定檢查
+if (!SHEET_API_URL) {
+  const b = $("#banner");
+  b.style.display = "block";
+  b.textContent = "測試模式：尚未設定試算表寫入網址，送出時只會顯示結果，不會存檔。";
+}
+
+// 飲料快速選擇
+$("#chips").addEventListener("click", e => {
+  if (e.target.classList.contains("chip")) {
+    $("#drink").value = e.target.textContent;
+  }
+});
+
+// 合計
+function readCost(card){
+  const v = parseInt($('[name="cost"]', card).value, 10);
+  return Number.isFinite(v) && v > 0 ? v : 0;
+}
+function updateTotal(){
+  const t = $$('[data-meal]').reduce((s,c) => s + readCost(c), 0);
+  $("#total").textContent = "NT$ " + t.toLocaleString("en-US");
+  return t;
+}
+$("#form").addEventListener("input", updateTotal);
+
+// LIFF（有設定 LIFF_ID 才啟用）
+async function initLiff(){
+  if (!LIFF_ID) return;
+  let tries = 0;
+  while (!window.liff && tries++ < 40) await new Promise(r => setTimeout(r, 100));
+  if (!window.liff) return;
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const prof = await liff.getProfile();
+    lineName = prof.displayName || "";
+    $("#who").textContent = "Hi，" + lineName;
+    $("#nameBox").style.display = "none";
+  } catch (err) {
+    console.warn("LIFF 初始化失敗", err);
+  }
+}
+initLiff();
+
+function showMsg(type, text){
+  const m = $("#msg");
+  m.className = "msg " + type;
+  m.textContent = text;
+}
+
+function collect(){
+  const meals = {};
+  $$('[data-meal]').forEach(card => {
+    meals[card.dataset.meal] = {
+      what: $('[name="what"]', card).value.trim(),
+      time: $('[name="time"]', card).value,
+      cost: readCost(card)
     };
+  });
+  return {
+    date: $("#date").value,
+    name: lineName || $("#name").value.trim(),
+    breakfast: meals.breakfast,
+    lunch: meals.lunch,
+    dinner: meals.dinner,
+    drink: $("#drink").value.trim()
+  };
+}
 
-    // 計算全球總數
-    const totalWarheads = Object.values(NUCLEAR_DATA_2026).reduce((a, b) => a + b, 0);
-    document.getElementById("global-total").textContent = `${totalWarheads.toLocaleString()} 枚`;
+$("#form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const data = collect();
+  const hasAny = data.breakfast.what || data.lunch.what || data.dinner.what || data.drink;
+  if (!data.date) return showMsg("err", "請選日期");
+  if (!hasAny) return showMsg("err", "至少填一餐或飲料再送出");
 
-    // 2. 棕色系深淺分級（數量越多顏色越深）
-    const TIERS = [
-      { id: 0, min: 0,    max: 0,        color: "#c5b097", range: "0 枚",        desc: "無核武" },
-      { id: 1, min: 1,    max: 100,      color: "#9e7248", range: "1 - 100 枚",  desc: "低量級" },
-      { id: 2, min: 101,  max: 300,      color: "#764924", range: "101 - 300 枚",desc: "中量級" },
-      { id: 3, min: 301,  max: 1000,     color: "#4f2a10", range: "301 - 1,000 枚", desc: "高量級" },
-      { id: 4, min: 1001, max: Infinity, color: "#281103", range: "1,001 枚以上", desc: "戰略級" }
-    ];
-
-    function getTier(count) {
-      return TIERS.find(t => count >= t.min && count <= t.max) || TIERS[0];
-    }
-
-    // 3. 完整繁體中文國家名稱對照表（ISO 3166-1 數字代碼 + 英文名稱備援）
-    const COUNTRY_ZH_BY_ID = {
-      "004": "阿富汗", "008": "阿爾巴尼亞", "012": "阿爾及利亞", "024": "安哥拉", "032": "阿根廷",
-      "051": "亞美尼亞", "036": "澳洲", "040": "奧地利", "031": "亞塞拜然", "044": "巴哈馬",
-      "050": "孟加拉", "112": "白俄羅斯", "056": "比利時", "084": "貝里斯", "204": "貝南",
-      "064": "不丹", "068": "玻利維亞", "070": "波士尼亞與赫塞哥維納", "072": "波札那", "076": "巴西",
-      "096": "汶萊", "100": "保加利亞", "854": "布吉納法索", "108": "蒲隆地", "116": "柬埔寨",
-      "120": "喀麥隆", "124": "加拿大", "140": "中非共和國", "148": "查德", "152": "智利",
-      "156": "中國", "170": "哥倫比亞", "178": "剛果共和國", "180": "剛果民主共和國", "188": "哥斯大黎加",
-      "384": "象牙海岸", "191": "克羅埃西亞", "192": "古巴", "196": "賽普勒斯", "203": "捷克",
-      "208": "丹麥", "262": "吉布地", "214": "多明尼加", "218": "厄瓜多", "818": "埃及",
-      "222": "薩爾瓦多", "226": "赤道幾內亞", "232": "厄利垂亞", "233": "愛沙尼亞", "748": "史瓦帝尼",
-      "231": "衣索比亞", "238": "福克蘭群島", "242": "斐濟", "246": "芬蘭", "250": "法國",
-      "266": "加彭", "270": "甘比亞", "268": "喬治亞", "276": "德國", "288": "迦納",
-      "300": "希臘", "304": "格陵蘭", "320": "瓜地馬拉", "324": "幾內亞", "624": "幾內亞比索",
-      "328": "蓋亞那", "332": "海地", "340": "宏都拉斯", "348": "匈牙利", "352": "冰島",
-      "356": "印度", "360": "印尼", "364": "伊朗", "368": "伊拉克", "372": "愛爾蘭",
-      "376": "以色列", "380": "義大利", "388": "牙買加", "392": "日本", "400": "約旦",
-      "398": "哈薩克", "404": "肯亞", "408": "北韓", "410": "南韓", "414": "科威特",
-      "417": "吉爾吉斯", "418": "寮國", "428": "拉脫維亞", "422": "黎巴嫩", "426": "賴索托",
-      "430": "賴比瑞亞", "434": "利比亞", "440": "立陶宛", "442": "盧森堡", "807": "北馬其頓",
-      "450": "馬達加斯加", "454": "馬拉威", "458": "馬來西亞", "466": "馬利", "478": "茅利塔尼亞",
-      "484": "墨西哥", "498": "摩爾多瓦", "496": "蒙古", "499": "蒙特內哥羅", "504": "摩洛哥",
-      "508": "莫三比克", "104": "緬甸", "516": "納米比亞", "524": "尼泊爾", "528": "荷蘭",
-      "540": "新喀里多尼亞", "554": "紐西蘭", "558": "尼加拉瓜", "562": "尼日", "566": "奈及利亞",
-      "578": "挪威", "512": "阿曼", "586": "巴基斯坦", "275": "巴勒斯坦", "591": "巴拿馬",
-      "598": "巴布亞紐幾內亞", "600": "巴拉圭", "604": "秘魯", "608": "菲律賓", "616": "波蘭",
-      "620": "葡萄牙", "630": "波多黎各", "634": "卡達", "642": "羅馬尼亞", "643": "俄羅斯",
-      "646": "盧安達", "682": "沙烏地阿拉伯", "686": "塞內加爾", "688": "塞爾維亞", "694": "獅子山",
-      "703": "斯洛伐克", "705": "斯洛維尼亞", "090": "索羅門群島", "706": "索馬利亞", "710": "南非",
-      "728": "南蘇丹", "724": "西班牙", "144": "斯里蘭卡", "729": "蘇丹", "740": "蘇利南",
-      "752": "瑞典", "756": "瑞士", "760": "敘利亞", "158": "台灣", "762": "塔吉克",
-      "834": "坦尚尼亞", "764": "泰國", "626": "東帝汶", "768": "多哥", "780": "千里達及托巴哥",
-      "788": "突尼西亞", "792": "土耳其", "795": "土庫曼", "800": "烏干達", "804": "烏克蘭",
-      "784": "阿拉伯聯合大公國", "826": "英國", "840": "美國", "858": "烏拉圭", "860": "烏茲別克",
-      "548": "萬那杜", "862": "委內瑞拉", "704": "越南", "732": "西撒哈拉", "887": "葉門",
-      "894": "尚比亞", "716": "辛巴威", "260": "法屬南部領地"
-    };
-
-    const COUNTRY_ZH_BY_NAME = {
-      "Somaliland": "索馬利蘭",
-      "Kosovo": "科索沃",
-      "N. Cyprus": "北賽普勒斯",
-      "W. Sahara": "西撒哈拉",
-      "Dem. Rep. Congo": "剛果民主共和國",
-      "Dominican Rep.": "多明尼加",
-      "Falkland Is.": "福克蘭群島",
-      "Fr. S. Antarctic Lands": "法屬南部領地",
-      "Central African Rep.": "中非共和國",
-      "Eq. Guinea": "赤道幾內亞",
-      "eSwatini": "史瓦帝尼",
-      "Solomon Is.": "索羅門群島",
-      "S. Sudan": "南蘇丹",
-      "Bosnia and Herz.": "波士尼亞與赫塞哥維納",
-      "Macedonia": "北馬其頓",
-      "United States of America": "美國",
-      "Russia": "俄羅斯",
-      "Taiwan": "台灣"
-    };
-
-    function getChineseName(feature) {
-      const id = feature.id != null ? String(feature.id).padStart(3, "0") : "";
-      if (COUNTRY_ZH_BY_ID[id]) return COUNTRY_ZH_BY_ID[id];
-      const enName = feature.properties && feature.properties.name ? feature.properties.name : "未知地區";
-      return COUNTRY_ZH_BY_NAME[enName] || enName;
-    }
-
-    function getWarheadCount(feature) {
-      const id = feature.id != null ? String(feature.id).padStart(3, "0") : "";
-      return NUCLEAR_DATA_2026[id] || 0;
-    }
-
-    // 4. UTC 即時時鐘
-    function updateClock() {
-      const now = new Date();
-      const pad = n => String(n).padStart(2, "0");
-      document.getElementById("utc-clock").textContent =
-        `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())} Z`;
-    }
-    updateClock();
-    setInterval(updateClock, 1000);
-
-    // 5. 渲染右下角圖例
-    const legendList = document.getElementById("legend-list");
-    TIERS.forEach(tier => {
-      const item = document.createElement("div");
-      item.className = "legend-item";
-      item.innerHTML = `
-        <div class="legend-left">
-          <span class="legend-swatch" style="background:${tier.color};"></span>
-          <span class="legend-range">${tier.range}</span>
-        </div>
-        <span class="legend-desc">${tier.desc}</span>
-      `;
-
-      item.addEventListener("mouseenter", () => {
-        d3.selectAll(".country").style("opacity", d => {
-          const c = getWarheadCount(d);
-          return getTier(c).id === tier.id ? 1 : 0.22;
-        });
+  const btn = $("#btn");
+  btn.disabled = true; btn.textContent = "送出中…";
+  try {
+    if (!SHEET_API_URL) {
+      console.log("測試模式，不存檔：", data);
+      showMsg("ok", "（測試模式）收到：\n" + JSON.stringify(data, null, 2));
+    } else {
+      // text/plain 可避開瀏覽器的 CORS 預檢，Apps Script 才收得到
+      const res = await fetch(SHEET_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(data)
       });
-
-      item.addEventListener("mouseleave", () => {
-        d3.selectAll(".country").style("opacity", 1);
-      });
-
-      legendList.appendChild(item);
-    });
-
-    // 6. 建立 D3 世界地圖
-    const container = document.getElementById("map-container");
-    const svg = d3.select("#world-map");
-    const mapLayer = svg.append("g");
-    const tooltip = document.getElementById("tooltip");
-    const ttCountry = document.getElementById("tt-country");
-    const ttTag = document.getElementById("tt-tag");
-    const ttCount = document.getElementById("tt-count");
-
-    let width = container.clientWidth;
-    let height = container.clientHeight;
-
-    const projection = d3.geoNaturalEarth1();
-    const path = d3.geoPath(projection);
-    const graticule = d3.geoGraticule();
-
-    const zoom = d3.zoom()
-      .scaleExtent([1, 8])
-      .on("zoom", (event) => {
-        mapLayer.attr("transform", event.transform);
-      });
-
-    svg.call(zoom);
-
-    document.getElementById("btn-zoom-in").addEventListener("click", () => {
-      svg.transition().duration(300).call(zoom.scaleBy, 1.45);
-    });
-
-    document.getElementById("btn-zoom-out").addEventListener("click", () => {
-      svg.transition().duration(300).call(zoom.scaleBy, 0.7);
-    });
-
-    document.getElementById("btn-reset").addEventListener("click", () => {
-      svg.transition().duration(450).call(zoom.transform, d3.zoomIdentity);
-    });
-
-    function positionTooltip(event) {
-      const offset = 16;
-      const ttRect = tooltip.getBoundingClientRect();
-      let x = event.clientX + offset;
-      let y = event.clientY + offset;
-
-      if (x + ttRect.width > window.innerWidth - 12) {
-        x = event.clientX - ttRect.width - offset;
+      const out = await res.json();
+      if (out && out.ok) {
+        showMsg("ok", "已記錄 ✅  今天合計 NT$ " + updateTotal().toLocaleString("en-US"));
+      } else {
+        throw new Error((out && out.error) || "伺服器回傳失敗");
       }
-      if (y + ttRect.height > window.innerHeight - 12) {
-        y = event.clientY - ttRect.height - offset;
-      }
-
-      tooltip.style.left = `${x}px`;
-      tooltip.style.top = `${y}px`;
     }
-
-    // 載入 TopoJSON 圖資
-    fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
-      .then(res => {
-        if (!res.ok) throw new Error("無法載入世界地圖圖資");
-        return res.json();
-      })
-      .then(world => {
-        // 過濾南極洲 (010) 以獲得更佳的戰略視圖比例
-        const countries = topojson.feature(world, world.objects.countries).features
-          .filter(d => String(d.id).padStart(3, "0") !== "010");
-
-        const geoCollection = { type: "FeatureCollection", features: countries };
-
-        function fitProjection() {
-          width = container.clientWidth;
-          height = container.clientHeight;
-          svg.attr("viewBox", `0 0 ${width} ${height}`);
-          projection.fitExtent([[36, 20], [width - 36, height - 28]], geoCollection);
-        }
-
-        fitProjection();
-
-        // 經緯網格與地球外框
-        const spherePath = mapLayer.append("path")
-          .datum({ type: "Sphere" })
-          .attr("class", "sphere-outline")
-          .attr("d", path);
-
-        const gratPath = mapLayer.append("path")
-          .datum(graticule())
-          .attr("class", "graticule")
-          .attr("d", path);
-
-        // 國家多邊形
-        const countryPaths = mapLayer.selectAll("path.country")
-          .data(countries)
-          .enter()
-          .append("path")
-          .attr("class", "country")
-          .attr("d", path)
-          .attr("fill", d => getTier(getWarheadCount(d)).color)
-          .on("mouseenter", function (event, d) {
-            const count = getWarheadCount(d);
-            const nameZh = getChineseName(d);
-
-            d3.select(this).raise().classed("active", true);
-
-            ttCountry.textContent = nameZh;
-            if (count > 0) {
-              ttTag.textContent = "擁核國家";
-              ttTag.className = "tooltip-tag tag-armed";
-              ttCount.textContent = `${count.toLocaleString()} 枚`;
-              ttCount.className = "tooltip-value";
-            } else {
-              ttTag.textContent = "無核武";
-              ttTag.className = "tooltip-tag tag-none";
-              ttCount.textContent = "0 枚";
-              ttCount.className = "tooltip-value zero";
-            }
-
-            tooltip.classList.add("visible");
-            positionTooltip(event);
-          })
-          .on("mousemove", function (event) {
-            positionTooltip(event);
-          })
-          .on("mouseleave", function () {
-            d3.select(this).classed("active", false);
-            tooltip.classList.remove("visible");
-          });
-
-        // 視窗大小調整自適應
-        window.addEventListener("resize", () => {
-          fitProjection();
-          spherePath.attr("d", path);
-          gratPath.attr("d", path);
-          countryPaths.attr("d", path);
-        });
-
-        // 隱藏載入遮罩
-        const loader = document.getElementById("loading-overlay");
-        loader.style.opacity = "0";
-        setTimeout(() => loader.remove(), 400);
-      })
-      .catch(err => {
-        document.querySelector(".loader-text").textContent = "UPLINK FAILED // 請檢查網路連線後重新整理";
-        document.querySelector(".loader-text").style.color = "#ef4444";
-        console.error(err);
-      });
-  </script>
+  } catch (err) {
+    showMsg("err", "送出失敗：" + err.message + "\n可以稍後再試一次。");
+  } finally {
+    btn.disabled = false; btn.textContent = "送出記錄";
+  }
+});
+</script>
 </body>
 </html>

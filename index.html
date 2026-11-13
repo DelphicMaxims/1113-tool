@@ -18,19 +18,25 @@
   .sub{color:var(--mute);font-size:14px;margin:0 0 14px}
   .banner{background:#fffbeb;border:1px solid #fde68a;color:var(--warn);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;display:none}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
-  .card h2{font-size:16px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
-  .card h2 .ico{font-size:20px}
-  label{display:block;font-size:13px;color:var(--mute);margin:8px 0 4px}
+  label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+  label:first-child{margin-top:0}
   input[type=text],input[type=date],input[type=time],input[type=number]{
     width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);
     -webkit-appearance:none;appearance:none;min-height:44px}
   input:focus{outline:2px solid var(--green);outline-offset:0;border-color:var(--green)}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+  /* 四個餐別大按鈕 */
+  .meals{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+  .meal{border:2px solid var(--line);background:#fff;border-radius:14px;padding:12px 2px 10px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:4px;font-size:15px;font-weight:700;color:var(--ink);min-height:76px}
+  .meal .ico{font-size:26px;line-height:1}
+  .meal.on{border-color:var(--green);background:#ecfdf3;color:#065f46;box-shadow:0 0 0 3px rgba(6,199,85,.15)}
+  .auto{font-size:12px;color:var(--mute);margin:-4px 2px 10px}
+
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
   .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;color:var(--ink)}
   .chip:active{background:#ecfdf3;border-color:var(--green)}
-  .total{display:flex;justify-content:space-between;align-items:center;font-size:15px;margin:2px 4px 12px}
-  .total b{font-size:20px;color:var(--green-d)}
   button.submit{width:100%;border:0;background:var(--green);color:#fff;font-size:17px;font-weight:700;border-radius:12px;padding:14px;min-height:50px;cursor:pointer}
   button.submit:disabled{background:#9ca3af}
   button.submit:active:not(:disabled){background:var(--green-d)}
@@ -38,58 +44,34 @@
   .msg.ok{display:block;background:#ecfdf3;border:1px solid #a7f3d0;color:#065f46}
   .msg.err{display:block;background:#fef2f2;border:1px solid #fecaca;color:var(--err)}
   .foot{color:var(--mute);font-size:12px;text-align:center;margin-top:16px}
-  .who{font-size:13px;color:var(--mute);margin:0 0 10px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>🍽️ 每日飲食記錄</h1>
-  <p class="sub">記下今天吃了什麼、幾點吃、花多少錢。</p>
+  <p class="sub">選一餐，填吃了什麼，送出就記進試算表。</p>
   <div class="banner" id="banner"></div>
-  <p class="who" id="who"></p>
 
   <form id="form" autocomplete="off" novalidate>
+    <div class="meals" id="meals" role="radiogroup" aria-label="餐別">
+      <button type="button" class="meal" data-meal="早餐" role="radio"><span class="ico">🥐</span>早餐</button>
+      <button type="button" class="meal" data-meal="中餐" role="radio"><span class="ico">🍱</span>中餐</button>
+      <button type="button" class="meal" data-meal="晚餐" role="radio"><span class="ico">🍜</span>晚餐</button>
+      <button type="button" class="meal" data-meal="其他" role="radio"><span class="ico">🍰</span>其他</button>
+    </div>
+    <p class="auto" id="auto"></p>
+
     <div class="card">
-      <label for="date" style="margin-top:0">日期</label>
-      <input type="date" id="date" required>
-      <div id="nameBox">
-        <label for="name">你的名字（選填）</label>
-        <input type="text" id="name" maxlength="30" placeholder="例如：Michael">
-      </div>
-    </div>
-
-    <div class="card" data-meal="breakfast">
-      <h2><span class="ico">🥐</span>早餐</h2>
-      <label>吃什麼</label>
-      <input type="text" name="what" maxlength="60" placeholder="例如：蛋餅、豆漿">
+      <label for="what">吃什麼</label>
+      <input type="text" id="what" maxlength="60" placeholder="例如：蛋餅、雞腿便當、牛肉麵">
       <div class="row">
-        <div><label>幾點吃</label><input type="time" name="time"></div>
-        <div><label>花多少（元）</label><input type="number" name="cost" inputmode="numeric" min="0" max="100000" step="1" placeholder="0"></div>
-      </div>
-    </div>
-
-    <div class="card" data-meal="lunch">
-      <h2><span class="ico">🍱</span>中餐</h2>
-      <label>吃什麼</label>
-      <input type="text" name="what" maxlength="60" placeholder="例如：雞腿便當">
-      <div class="row">
-        <div><label>幾點吃</label><input type="time" name="time"></div>
-        <div><label>花多少（元）</label><input type="number" name="cost" inputmode="numeric" min="0" max="100000" step="1" placeholder="0"></div>
-      </div>
-    </div>
-
-    <div class="card" data-meal="dinner">
-      <h2><span class="ico">🍜</span>晚餐</h2>
-      <label>吃什麼</label>
-      <input type="text" name="what" maxlength="60" placeholder="例如：牛肉麵">
-      <div class="row">
-        <div><label>幾點吃</label><input type="time" name="time"></div>
-        <div><label>花多少（元）</label><input type="number" name="cost" inputmode="numeric" min="0" max="100000" step="1" placeholder="0"></div>
+        <div><label for="time">幾點吃</label><input type="time" id="time"></div>
+        <div><label for="cost">花多少（元）</label><input type="number" id="cost" inputmode="numeric" min="0" max="100000" step="1" placeholder="0"></div>
       </div>
     </div>
 
     <div class="card">
-      <h2><span class="ico">🥤</span>喝什麼飲料</h2>
+      <label for="drink">喝什麼飲料</label>
       <input type="text" id="drink" maxlength="60" placeholder="例如：無糖綠茶、拿鐵">
       <div class="chips" id="chips">
         <span class="chip">水</span><span class="chip">無糖茶</span><span class="chip">咖啡</span>
@@ -97,7 +79,13 @@
       </div>
     </div>
 
-    <div class="total"><span>今天花費合計</span><b id="total">NT$ 0</b></div>
+    <div class="card">
+      <div class="row">
+        <div><label for="date">日期</label><input type="date" id="date" required></div>
+        <div><label for="name">名字</label><input type="text" id="name" maxlength="30" value="Michael"></div>
+      </div>
+    </div>
+
     <button class="submit" id="btn" type="submit">送出記錄</button>
     <div class="msg" id="msg" role="status"></div>
   </form>
@@ -116,14 +104,7 @@ const LIFF_ID = "";
 
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
-let lineName = "";
-
-// 預設今天（用本機時區）
-(function setToday(){
-  const d = new Date();
-  const p = n => String(n).padStart(2,"0");
-  $("#date").value = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
-})();
+const p2 = n => String(n).padStart(2,"0");
 
 // 設定檢查
 if (!SHEET_API_URL) {
@@ -132,26 +113,62 @@ if (!SHEET_API_URL) {
   b.textContent = "測試模式：尚未設定試算表寫入網址，送出時只會顯示結果，不會存檔。";
 }
 
-// 飲料快速選擇
-$("#chips").addEventListener("click", e => {
-  if (e.target.classList.contains("chip")) {
-    $("#drink").value = e.target.textContent;
-  }
+// ---- 日期、時間自動帶入「現在」（用裝置本機時區） ----
+function setNow(){
+  const d = new Date();
+  $("#date").value = `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+  $("#time").value = `${p2(d.getHours())}:${p2(d.getMinutes())}`;
+}
+let timeTouched = false;
+$("#time").addEventListener("input", () => { timeTouched = true; });
+
+// ---- 依時間自動選餐別 ----
+//  05:00–10:29 早餐 ／ 10:30–14:29 中餐 ／ 16:30–20:59 晚餐 ／ 其餘 其他（下午茶、宵夜…）
+function guessMeal(d = new Date()){
+  const m = d.getHours()*60 + d.getMinutes();
+  if (m >= 300  && m < 630)  return "早餐";
+  if (m >= 630  && m < 870)  return "中餐";
+  if (m >= 990  && m < 1260) return "晚餐";
+  return "其他";
+}
+let meal = "";
+let manualPick = false;
+function selectMeal(name, byUser){
+  meal = name;
+  if (byUser) manualPick = true;
+  $$(".meal").forEach(b => {
+    const on = b.dataset.meal === name;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-checked", on ? "true" : "false");
+  });
+  $("#auto").textContent = byUser ? "已手動選擇：" + name : "依現在時間自動選：" + name + "（可以改按其他）";
+}
+$("#meals").addEventListener("click", e => {
+  const b = e.target.closest(".meal");
+  if (b) selectMeal(b.dataset.meal, true);
 });
 
-// 合計
-function readCost(card){
-  const v = parseInt($('[name="cost"]', card).value, 10);
-  return Number.isFinite(v) && v > 0 ? v : 0;
-}
-function updateTotal(){
-  const t = $$('[data-meal]').reduce((s,c) => s + readCost(c), 0);
-  $("#total").textContent = "NT$ " + t.toLocaleString("en-US");
-  return t;
-}
-$("#form").addEventListener("input", updateTotal);
+// 飲料快速選擇
+$("#chips").addEventListener("click", e => {
+  if (e.target.classList.contains("chip")) $("#drink").value = e.target.textContent;
+});
 
-// LIFF（有設定 LIFF_ID 才啟用）
+// 開著頁面放很久再回來：沒手動改過就重新抓時間與餐別
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    setNow0();
+  }
+});
+function setNow0(){
+  const d = new Date();
+  $("#date").value = `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+  if (!timeTouched) $("#time").value = `${p2(d.getHours())}:${p2(d.getMinutes())}`;
+  if (!manualPick) selectMeal(guessMeal(d), false);
+}
+setNow();
+selectMeal(guessMeal(), false);
+
+// LIFF（有設定 LIFF_ID 才啟用）：只用來確認是 LINE 內開啟，名字預設仍是 Michael，可自行修改
 async function initLiff(){
   if (!LIFF_ID) return;
   let tries = 0;
@@ -160,10 +177,6 @@ async function initLiff(){
   try {
     await liff.init({ liffId: LIFF_ID });
     if (!liff.isLoggedIn()) { liff.login(); return; }
-    const prof = await liff.getProfile();
-    lineName = prof.displayName || "";
-    $("#who").textContent = "Hi，" + lineName;
-    $("#nameBox").style.display = "none";
   } catch (err) {
     console.warn("LIFF 初始化失敗", err);
   }
@@ -177,20 +190,14 @@ function showMsg(type, text){
 }
 
 function collect(){
-  const meals = {};
-  $$('[data-meal]').forEach(card => {
-    meals[card.dataset.meal] = {
-      what: $('[name="what"]', card).value.trim(),
-      time: $('[name="time"]', card).value,
-      cost: readCost(card)
-    };
-  });
+  const cv = parseInt($("#cost").value, 10);
   return {
     date: $("#date").value,
-    name: lineName || $("#name").value.trim(),
-    breakfast: meals.breakfast,
-    lunch: meals.lunch,
-    dinner: meals.dinner,
+    name: $("#name").value.trim(),
+    meal: meal,
+    what: $("#what").value.trim(),
+    time: $("#time").value,
+    cost: Number.isFinite(cv) && cv > 0 ? cv : 0,
     drink: $("#drink").value.trim()
   };
 }
@@ -198,9 +205,9 @@ function collect(){
 $("#form").addEventListener("submit", async e => {
   e.preventDefault();
   const data = collect();
-  const hasAny = data.breakfast.what || data.lunch.what || data.dinner.what || data.drink;
   if (!data.date) return showMsg("err", "請選日期");
-  if (!hasAny) return showMsg("err", "至少填一餐或飲料再送出");
+  if (!data.meal) return showMsg("err", "請先選早餐／中餐／晚餐／其他");
+  if (!data.what && !data.drink) return showMsg("err", "「吃什麼」或「飲料」至少填一個再送出");
 
   const btn = $("#btn");
   btn.disabled = true; btn.textContent = "送出中…";
@@ -217,7 +224,11 @@ $("#form").addEventListener("submit", async e => {
       });
       const out = await res.json();
       if (out && out.ok) {
-        showMsg("ok", "已記錄 ✅  今天合計 NT$ " + updateTotal().toLocaleString("en-US"));
+        showMsg("ok", "已記錄 ✅  " + data.meal + (data.what ? "：" + data.what : "") + (data.cost ? "  NT$ " + data.cost : "") + "\n想再記下一筆，直接改內容再送出。");
+        // 清掉這筆的內容，保留日期、名字
+        $("#what").value = ""; $("#cost").value = ""; $("#drink").value = "";
+        timeTouched = false; manualPick = false;
+        setNow0();
       } else {
         throw new Error((out && out.error) || "伺服器回傳失敗");
       }

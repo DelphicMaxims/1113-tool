@@ -194,7 +194,7 @@ th{background:#f3f4f6}
   <span id="cnt"></span>
   <button id="next">下一頁 →</button>
   <button id="fs">全螢幕</button>
-  <a id="dl" href="#" download="每日飲食記錄APP簡報.html">下載本簡報</a>
+  <a id="dl" href="slides.html" download="每日飲食記錄APP簡報.html">下載本簡報</a>
   <a href="guide.pdf" target="_blank" rel="noopener">下載說明 PDF</a>
 </div>
 
@@ -233,11 +233,27 @@ addEventListener("keydown",e=>{
 let sx=null;
 addEventListener("touchstart",e=>{sx=e.touches[0].clientX},{passive:true});
 addEventListener("touchend",e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)go(cur+(dx<0?1:-1));sx=null});
-// 下載本簡報（把目前這份 HTML 存成檔案，圖片已內嵌，離線可開）
-document.getElementById("dl").addEventListener("click",function(){
-  const html="<!DOCTYPE html>\n"+document.documentElement.outerHTML;
-  this.href=URL.createObjectURL(new Blob([html],{type:"text/html"}));
-});
+// 下載本簡報：
+//  - 一般瀏覽器（網站上開啟）：直接下載同一個檔案
+//  - 檔案是從電腦本機打開的：把目前頁面存成 HTML
+//  - LINE 內建瀏覽器擋下載：提示改用手機瀏覽器開啟
+(function(){
+  const dl=document.getElementById("dl");
+  const inLine=/\bLine\//i.test(navigator.userAgent);
+  const web=/^https?:$/.test(location.protocol);
+  if(web) dl.setAttribute("href", location.pathname.endsWith("/") ? "slides.html" : location.pathname);
+  dl.addEventListener("click",function(e){
+    if(inLine){
+      e.preventDefault();
+      alert("LINE 內建瀏覽器無法下載檔案。\n請點右上角「⋯」→「用預設瀏覽器開啟」，再按一次「下載本簡報」。");
+      return;
+    }
+    if(!web){
+      const html="<!DOCTYPE html>\n"+document.documentElement.outerHTML;
+      this.href=URL.createObjectURL(new Blob([html],{type:"text/html"}));
+    }
+  });
+})();
 go(Math.max(0,(parseInt(location.hash.slice(1))||1)-1));
 </script>
 </body></html>
